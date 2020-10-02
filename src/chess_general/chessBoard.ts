@@ -22,14 +22,14 @@ export class ChessBoard {
         board: ChessPiece[][],
         public piecesAllowed: PieceType[] = [...Object.values(PieceType)],
         public fontColour: Colour = Colour.Magenta,
-        public bgColour: Colour = Colour.Green,
+        public bgColour: Colour = Colour.Grey,
         public highlight: Colour = Colour.Green
     ) {
         this.board = this.convertBoard(board);
         this.dimensions = [this.board.length, this.board[0].length];    // rows, columns
         this.capturedPieces = [];
         this.reversed = false;
-        this.headers = { rowWidth: 4, colHeight: 2 };
+        this.headers = { rowWidth: 2, colHeight: 1 };
     }
 
     convertBoard(board: ChessPiece[][]): Cell[][] {
@@ -181,35 +181,33 @@ export class ChessBoard {
     }
 
     checkMovement(oldPos: [number, number], newPos: [number, number]): [boolean, string] {
-        let evaluation: [boolean, string];
         // no move
         if (oldPos[0] === newPos[0] && oldPos[1] === newPos[1]) {
-            evaluation = [false, "stationary"];
+            return [false, "stationary"];
         }
         // check whether move is out of bounds
         else if (this.isOutOfBounds(newPos)) {
-            evaluation = [false, "out of bounds"];
+            return [false, "out of bounds"];
         }
         // check whether piece is able to make the move
         let validMove = this.board[oldPos[0]][oldPos[1]].piece.checkMovement(oldPos, newPos, this.board[newPos[0]][newPos[1]].piece);
         if (validMove) {
             // check if end position is occupied by a piece of the same colour
             if (this.board[oldPos[0]][oldPos[1]].piece.owner === this.board[newPos[0]][newPos[1]].piece.owner) {
-                evaluation = [false, "same owner"];
+                return [false, "same owner"];
             }
             // check whether move is blocked
             else if (this.board[oldPos[0]][oldPos[1]].piece.canBeBlocked) {
-                evaluation = [this.pieceNotBlocked(oldPos, newPos), "blocked"];
+                return [this.pieceNotBlocked(oldPos, newPos), "blocked"];
             }
             // valid move
             else {
-                evaluation = [true, ""];
+                return [true, ""];
             }
         }
         else {
-            evaluation = [false, `invalid ${this.board[oldPos[0]][oldPos[1]].piece.pieceType.toLowerCase()}  move`];
+            return [false, `invalid ${this.board[oldPos[0]][oldPos[1]].piece.pieceType.toLowerCase()}  move`];
         }
-        return evaluation;
     }
 
     getPossibleMovements(pos: [number, number]): number[][] {

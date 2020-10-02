@@ -11,6 +11,7 @@ import { Knight } from './../chess_pieces/knight';
 import { Rook } from './../chess_pieces/rook';
 import { ChessBoard } from './chessBoard';
 import * as input from 'readline-sync';
+import { Utilities } from '../misc/utilities';
 
 export class ChessGame {
 
@@ -29,52 +30,73 @@ export class ChessGame {
     activeBoard: ChessBoard;
     players: [Colour, PlayerType][];
     terminationStr: string = '%';
-    objectives: ChessPiece[] = [];
+    objectives: number = 0;
+    objectivesCaptured: number = 0;
 
-    constructor(players?: [Colour, PlayerType][], board?: ChessBoard) {
-        this.players = players || [[Colour.White, PlayerType.Human], [Colour.Cyan, PlayerType.Human]];
+    constructor(board?: ChessBoard, players?: [Colour, PlayerType][]) {
         this.activeBoard = board || this.defaultBoard;
+        this.players = players || [[Colour.White, PlayerType.Human], [Colour.Cyan, PlayerType.Human]];
         this.activeBoard.board.forEach(row => row.forEach(cell => {
             if (cell.piece.objective) {
-                this.objectives.push(cell.piece);
+                this.objectives++;
             }
         }));
     }
 
     run(): void {
+        let cont: boolean;
         do {
-            this.nextRound();
+            cont = this.takeRound();
         }
-        while (true);
+        while (cont);
+        console.log(this.isGameOver() ? this.getGOMsg() : "Session terminated");
     }
 
-    nextTurn(turn: number): boolean {
+    takeTurn(turn: number): boolean {
+        let cont = true;
         do {
             let from = this.getPieceToMove(turn);
-            if (from === [-1, -1]) {
-                break;
+            if (Utilities.compareArrays(from, [-1, -1])) {
                 return false;
             }
+            //! to inconsistent with from
             let to = this.selectCoords("\'to\'");
+            cont = !this.activeBoard.checkMovement(from, to)[0];
+            this.checkObjectiveCapture(from, to);
+
+            //! called many times!! - endless loop
             this.activeBoard.move(from, to);
             this.activeBoard.reset();
             this.activeBoard.display();
 
             input.question();
         }
-        while (true);
+        while (cont);
         return true;
     }
 
-    nextRound(): void {
+    takeRound(): boolean {
         for (let turn = 0; turn < this.players.length; turn++) {
-            this.nextTurn(turn);
+            if (!this.takeTurn(turn) || this.isGameOver()) {
+                return false;
+            }
             this.activeBoard.reverse();
+        }
+        return true;
+    }
+
+    checkObjectiveCapture(from: [number, number], to: [number, number]): void {
+        if (this.activeBoard.checkMovement(from, to)[0] && this.activeBoard.board[to[0]][to[1]].piece.objective) {
+            this.objectivesCaptured++;
         }
     }
 
     isGameOver(): boolean {
-        return this.objectives.length === 1;
+        return this.objectives === this.objectivesCaptured + 1;
+    }
+
+    getGOMsg(): string {
+        return `Someone has won!`;
     }
 
     getPieceToMove(turn: number): [number, number] {
@@ -83,8 +105,11 @@ export class ChessGame {
             console.clear();
             this.activeBoard.display();
             from = this.selectCoords("\'from\'");
+            if (Utilities.compareArrays(from, [-1, -1])) {
+                return [-1, -1];
+            }
         }
-        while((!this.activeBoard.isOutOfBounds(from) || this.activeBoard.board[from[0]][from[1]].piece.owner !== this.players[turn][0]) && from !== [-1, -1]);
+        while (this.activeBoard.isOutOfBounds(from) || this.activeBoard.board[from[0]][from[1]].piece.owner !== this.players[turn][0]);
         console.clear();
         this.activeBoard.showProjection(from);
         return from;
