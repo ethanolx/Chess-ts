@@ -4,21 +4,13 @@ import { ChessPiece } from './chessPiece';
 
 export class EmptySpace implements ChessPiece {
 
-    owner: Colour;
-    unique: boolean;
-    hasMoved: boolean;
-    objective: boolean;
-    canBeBlocked: boolean;
-    pieceType: PieceType
-
-    constructor() {
-        this.owner = Colour.None;
-        this.unique = false;
-        this.hasMoved = false;
-        this.objective = false;
-        this.canBeBlocked = false;
-        this.pieceType = PieceType.Null;
-    }
+    owner: Colour = Colour.None;
+    unique: boolean = false;
+    hasMoved: boolean = false;
+    objective: boolean = false;
+    canBeBlocked: boolean = false;
+    pieceType: PieceType = PieceType.Null;
+    possMovements: [number, number][] = [];
 
     checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean {
         return false;

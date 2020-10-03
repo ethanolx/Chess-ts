@@ -4,28 +4,23 @@ import { ChessPiece } from './chessPiece';
 
 export class Queen implements ChessPiece {
 
-    unique: boolean;
-    objective: boolean;
-    hasMoved: boolean;
-    canBeBlocked: boolean;
-    pieceType: PieceType;
+    unique: boolean = false;
+    objective: boolean = false;
+    hasMoved: boolean = false;
+    canBeBlocked: boolean = true;
+    pieceType: PieceType = PieceType.Queen;
+    possMovements: [number, number][] = [];
 
     constructor(
         public owner: Colour
-    ) {
-        this.unique = false;
-        this.objective = false;
-        this.hasMoved = false;
-        this.canBeBlocked = true;
-        this.pieceType = PieceType.Queen;
-    }
+    ) { }
 
     checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean {
         // horizontal
         return (oldPosition[0] === newPosition[0])
-        // vertical
-        || (oldPosition[1] === newPosition[1])
-        // diagonal
-        || (Math.abs(newPosition[0] - oldPosition[0]) === Math.abs(newPosition[1] - oldPosition[1]));
+            // vertical
+            || (oldPosition[1] === newPosition[1])
+            // diagonal
+            || (Math.abs(newPosition[0] - oldPosition[0]) === Math.abs(newPosition[1] - oldPosition[1]));
     }
 }

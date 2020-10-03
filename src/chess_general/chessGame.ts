@@ -12,6 +12,7 @@ import { Rook } from './../chess_pieces/rook';
 import { ChessBoard } from './chessBoard';
 import * as input from 'readline-sync';
 import { Utilities } from '../misc/utilities';
+import { CellState } from './cellState';
 
 export class ChessGame {
 
@@ -30,17 +31,18 @@ export class ChessGame {
     activeBoard: ChessBoard;
     players: [Colour, PlayerType][];
     terminationStr: string = '%';
-    objectives: number = 0;
-    objectivesCaptured: number = 0;
+    objectives: ChessPiece[] = [];
+    currentTurn: [Colour, PlayerType];  //! not used
 
     constructor(board?: ChessBoard, players?: [Colour, PlayerType][]) {
         this.activeBoard = board || this.defaultBoard;
         this.players = players || [[Colour.White, PlayerType.Human], [Colour.Cyan, PlayerType.Human]];
         this.activeBoard.board.forEach(row => row.forEach(cell => {
             if (cell.piece.objective) {
-                this.objectives++;
+                this.objectives.push(cell.piece);
             }
         }));
+        this.currentTurn = this.players[0];
     }
 
     run(): void {
@@ -52,20 +54,26 @@ export class ChessGame {
         console.log(this.isGameOver() ? this.getGOMsg() : "Session terminated");
     }
 
-    takeTurn(turn: number): boolean {
+    takeTurn(): boolean {
         let cont = true;
         do {
-            let from = this.getPieceToMove(turn);
-            if (Utilities.compareArrays(from, [-1, -1])) {
+            this.getMoveablePieces();
+            let from = this.getPieceToMove();
+            if (from.break) {
                 return false;
             }
+
             //! to inconsistent with from
             let to = this.selectCoords("\'to\'");
-            cont = !this.activeBoard.checkMovement(from, to)[0];
-            this.checkObjectiveCapture(from, to);
+            if (to.break) {
+                return false;
+            }
+
+            cont = !this.activeBoard.checkMovement(from.coords, to.coords)[0];
 
             //! called many times!! - endless loop
-            this.activeBoard.move(from, to);
+            this.activeBoard.move(from.coords, to.coords);
+            this.removeObjectivesCaptured();
             this.activeBoard.reset();
             this.activeBoard.display();
 
@@ -77,7 +85,8 @@ export class ChessGame {
 
     takeRound(): boolean {
         for (let turn = 0; turn < this.players.length; turn++) {
-            if (!this.takeTurn(turn) || this.isGameOver()) {
+            this.currentTurn = this.players[turn];
+            if (!this.takeTurn() || this.isGameOver()) {
                 return false;
             }
             this.activeBoard.reverse();
@@ -85,51 +94,74 @@ export class ChessGame {
         return true;
     }
 
-    checkObjectiveCapture(from: [number, number], to: [number, number]): void {
-        if (this.activeBoard.checkMovement(from, to)[0] && this.activeBoard.board[to[0]][to[1]].piece.objective) {
-            this.objectivesCaptured++;
-        }
+    removeObjectivesCaptured(): void {
+        let objectivesCaptured: Array<ChessPiece> = this.activeBoard.capturedPieces.filter(piece => piece.objective);
+        this.objectives = this.objectives.filter(obj => !objectivesCaptured.includes(obj));
     }
 
     isGameOver(): boolean {
-        return this.objectives === this.objectivesCaptured + 1;
+        return this.objectives.length === 1;
     }
 
     getGOMsg(): string {
-        return `Someone has won!`;
+        return `${this.objectives[0].owner} wins!`;
     }
 
-    getPieceToMove(turn: number): [number, number] {
-        let from: [number, number] = [-1, -1];
+    getPieceToMove(): { break: boolean, coords: [number, number] } {
+        let from: { break: boolean, coords: [number, number] } = { break: true, coords: [0, 0] };
+        let coords: [number, number];
         do {
             console.clear();
             this.activeBoard.display();
             from = this.selectCoords("\'from\'");
-            if (Utilities.compareArrays(from, [-1, -1])) {
-                return [-1, -1];
+            coords = from.coords;
+            if (from.break) {
+                return { break: true, coords: [0, 0] };
             }
         }
-        while (this.activeBoard.isOutOfBounds(from) || this.activeBoard.board[from[0]][from[1]].piece.owner !== this.players[turn][0]);
+        while (this.activeBoard.isOutOfBounds(coords) || this.activeBoard.board[coords[0]][coords[1]].piece.owner !== this.currentTurn[0]);
         console.clear();
-        this.activeBoard.showProjection(from);
+        this.activeBoard.getProjection(coords);
+        this.activeBoard.display();
         return from;
     }
 
-    selectCoords(direction: "\'from\'" | "\'to\'"): [number, number] {
+    getMoveablePieces(): void {
+        for (let row1 = 0; row1 < this.activeBoard.board.length; row1++) {
+            for (let col1 = 0; col1 < this.activeBoard.board[0].length; col1++) {
+                let cell = this.activeBoard.board[row1][col1];
+                cell.piece.possMovements = [];
+                for (let row = 0; row < this.activeBoard.board.length; row++) {
+                    for (let col = 0; col < this.activeBoard.board[0].length; col++) {
+                        if (this.activeBoard.checkMovement([row1, col1], [row, col])[0] && this.activeBoard.board[row1][col1].piece.owner === this.currentTurn[0]) {
+                            cell.piece.possMovements.unshift([row, col]);
+                        }
+                    }
+                }
+                cell.state = cell.piece.possMovements.length > 0 && cell.piece.owner === this.currentTurn[0] ? CellState.Available : CellState.Normal;
+            }
+        }
+    }
+
+    selectCoords(direction: "\'from\'" | "\'to\'"): { break: boolean, coords: [number, number] } {
         let piece: string;
         do {
             piece = input.question(`Enter ${direction} Coordinates (e.g. A1, C4) [\'${this.terminationStr}\' to quit]: `).toUpperCase();
             if (piece.trim() === this.terminationStr) {
-                return [-1, -1];
+                return { break: true, coords: [0, 0] };
             }
         }
         while (!this.validCoordinates(piece));
         let row_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[0] - (AlphabetToNumber.get(piece.charAt(0)) || 0) - 1 : AlphabetToNumber.get(piece.charAt(0)) || 0;
         let col_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[1] - parseInt(piece.charAt(1)) : parseInt(piece.charAt(1)) - 1;
-        return [row_coord, col_coord];
+        return { break: false, coords: [row_coord, col_coord] };
     }
 
     validCoordinates(coords: string): boolean {
-        return (coords.trim().length === 2) && (AlphabetToNumber.has(coords.charAt(0)));
+        return (coords.trim().length === 2) && (AlphabetToNumber.has(coords.charAt(0))) && [...Array(this.activeBoard.board[0].length + 1).keys()].includes(parseInt(coords.charAt(1)));
+    }
+
+    customRules(fn: (params: { from: [number, number], to: [number, number], pieceAtEnd: ChessPiece }) => any): any {
+
     }
 }

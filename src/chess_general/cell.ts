@@ -6,7 +6,7 @@ import { Colours } from '../misc/colours';
 
 export class Cell {
 
-    static dimensions: { height: number, width: number } = { height: 1, width: 2 };
+    static dimensions: { height: number, width: number } = { height: 3, width: 6 };
     state: CellState;
 
     constructor(
@@ -47,6 +47,8 @@ export class Cell {
                 return Colour.Blue;
             case CellState.Projected:
                 return Colour.Green;
+            case CellState.Available:
+                return Colour.Black;
             default:
                 return Colour.None;
         }

@@ -1,10 +1,10 @@
 export enum Colour {
-    Black,
-    Blue,
-    Cyan,
-    Green,
-    Grey,
-    Magenta,
-    White,
-    None
+    Black = "Black",
+    Blue = "Blue",
+    Cyan = "Cyan",
+    Green = "Green",
+    Grey = "Grey",
+    Magenta = "Magenta",
+    White = "White",
+    None = "None"
 }

@@ -74,14 +74,11 @@ export class ChessBoard {
         return this.checkUniques() && this.checkAllowed();
     }
 
-    showProjection(coords: [number, number]): void {
+    getProjection(coords: [number, number]): void {
         this.board.forEach((row, rowNum) => row.forEach((cell, colNum) => {
-            if (this.checkMovement(coords, [rowNum, colNum])[0]) {
-                cell.state = CellState.Projected;
-            }
+            cell.state = this.checkMovement(coords, [rowNum, colNum])[0] ? CellState.Projected : CellState.Normal;
         }));
         this.board[coords[0]][coords[1]].state = CellState.Selected;
-        this.display();
     }
 
     display(): void {
@@ -208,10 +205,6 @@ export class ChessBoard {
         else {
             return [false, `invalid ${this.board[oldPos[0]][oldPos[1]].piece.pieceType.toLowerCase()}  move`];
         }
-    }
-
-    getPossibleMovements(pos: [number, number]): number[][] {
-        throw new Error("Method not implemented!");
     }
 
     move(oldPos: [number, number], newPos: [number, number]): void {
