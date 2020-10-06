@@ -1,5 +1,5 @@
 import { Colour } from './../misc/colour';
-import { PieceType } from '../chess_general/pieceType';
+import { PieceType } from './pieceType';
 import { ChessPiece } from './chessPiece';
 
 export class Queen implements ChessPiece {

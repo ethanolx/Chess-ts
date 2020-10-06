@@ -7,15 +7,13 @@ import { Colours } from '../misc/colours';
 export class Cell {
 
     static dimensions: { height: number, width: number } = { height: 3, width: 6 };
-    state: CellState;
+    state: CellState = CellState.Normal;
 
     constructor(
         public piece: ChessPiece
-    ) {
-        this.state = CellState.Normal
-    }
+    ) { }
 
-    display(): string {
+    getDisplay(): string {
         let cellDisplayArr = [];
         for (let row = 0; row < Cell.dimensions.height; row++) {
             //  top and bottom margin around piece
@@ -48,7 +46,7 @@ export class Cell {
             case CellState.Projected:
                 return Colour.Green;
             case CellState.Available:
-                return Colour.Black;
+                return Colour.Magenta;
             default:
                 return Colour.None;
         }

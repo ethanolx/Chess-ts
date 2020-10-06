@@ -1,5 +1,5 @@
 import { Colour } from './../misc/colour';
-import { PieceType } from '../chess_general/pieceType';
+import { PieceType } from './pieceType';
 import { EmptySpace } from './emptySpace';
 import { ChessPiece } from './chessPiece';
 

@@ -51,14 +51,17 @@ export abstract class Utilities {
         return arr2D;
     }
 
-    static getWhiteSpace(spaces: number): string {
-        return Utilities.repeatString(' ', spaces);
+    static getWhiteSpace(spaces: number, column: boolean = false): string {
+        return Utilities.repeatString(' ', spaces, column ? "vertical" : "horizontal");
     }
 
-    static repeatString(str: string, times: number): string {
+    static repeatString(str: string, times: number, direction: "horizontal" | "vertical"): string {
         let repeatedStr = "";
         for (let i = 0; i < times; i++) {
-            repeatedStr += str;
+            repeatedStr += direction === "vertical" ? str + '\n' : str;
+        }
+        if (direction === "vertical") {
+            repeatedStr = repeatedStr.replace(/\n$/, '');
         }
         return repeatedStr;
     }

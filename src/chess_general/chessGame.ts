@@ -1,7 +1,8 @@
+import { DefaultChessBoard } from '../data/board_setups/default_board';
 import { ChessPiece } from './../chess_pieces/chessPiece';
 import { Colour } from './../misc/colour';
 import { AlphabetToNumber } from './../misc/alphabetMap';
-import { PlayerType } from './playerType';
+import { PlayerType } from '../players/playerType';
 import { Pawn } from './../chess_pieces/pawn';
 import { EmptySpace } from './../chess_pieces/emptySpace';
 import { King } from './../chess_pieces/king';
@@ -16,23 +17,12 @@ import { CellState } from './cellState';
 
 export class ChessGame {
 
-    defaultBoard: ChessBoard = new ChessBoard(
-        [
-            [new Rook(Colour.Cyan), new Knight(Colour.Cyan), new Bishop(Colour.Cyan), new Queen(Colour.Cyan), new King(Colour.Cyan), new Bishop(Colour.Cyan), new Knight(Colour.Cyan), new Rook(Colour.Cyan)],
-            [new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan)],
-            [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
-            [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
-            [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
-            [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
-            [new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White)],
-            [new Rook(Colour.White), new Knight(Colour.White), new Bishop(Colour.White), new Queen(Colour.White), new King(Colour.White), new Bishop(Colour.White), new Knight(Colour.White), new Rook(Colour.White)]
-        ]
-    );
+    defaultBoard: ChessBoard = DefaultChessBoard;
     activeBoard: ChessBoard;
     players: [Colour, PlayerType][];
     terminationStr: string = '%';
     objectives: ChessPiece[] = [];
-    currentTurn: [Colour, PlayerType];  //! not used
+    currentTurn: [Colour, PlayerType];
 
     constructor(board?: ChessBoard, players?: [Colour, PlayerType][]) {
         this.activeBoard = board || this.defaultBoard;
@@ -144,17 +134,22 @@ export class ChessGame {
     }
 
     selectCoords(direction: "\'from\'" | "\'to\'"): { break: boolean, coords: [number, number] } {
-        let piece: string;
+        let loc: string;
         do {
-            piece = input.question(`Enter ${direction} Coordinates (e.g. A1, C4) [\'${this.terminationStr}\' to quit]: `).toUpperCase();
-            if (piece.trim() === this.terminationStr) {
+            loc = input.question(`Enter ${direction} Coordinates (e.g. A1, C4) [\'${this.terminationStr}\' to quit]: `).toUpperCase().trim();
+            if (loc === this.terminationStr) {
                 return { break: true, coords: [0, 0] };
             }
         }
-        while (!this.validCoordinates(piece));
-        let row_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[0] - (AlphabetToNumber.get(piece.charAt(0)) || 0) - 1 : AlphabetToNumber.get(piece.charAt(0)) || 0;
-        let col_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[1] - parseInt(piece.charAt(1)) : parseInt(piece.charAt(1)) - 1;
-        return { break: false, coords: [row_coord, col_coord] };
+        while (!this.validCoordinates(loc));
+        let coords = this.convertCoordinates(loc);
+        return { break: false, coords: coords };
+    }
+
+    convertCoordinates(coordStr: string): [number, number] {
+        let row_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[0] - (AlphabetToNumber.get(coordStr.toUpperCase().charAt(0)) || 0) - 1 : AlphabetToNumber.get(coordStr.toUpperCase().charAt(0)) || 0;
+        let col_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[1] - parseInt(coordStr.charAt(1)) : parseInt(coordStr.charAt(1)) - 1;
+        return [row_coord, col_coord];
     }
 
     validCoordinates(coords: string): boolean {
