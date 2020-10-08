@@ -1,4 +1,4 @@
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { PieceType } from './pieceType';
 import { ChessPiece } from './chessPiece';
 
@@ -15,7 +15,7 @@ export class Rook implements ChessPiece {
         public owner: Colour
     ) { }
 
-    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean {
+    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos: ChessPiece): boolean {
         // horizontal
         return (oldPosition[0] === newPosition[0])
             // vertical

@@ -1,4 +1,4 @@
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { PieceType } from './pieceType';
 
 export interface ChessPiece {
@@ -10,5 +10,5 @@ export interface ChessPiece {
     pieceType: PieceType;    // represents char too
     possMovements: [number, number][];
 
-    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean;
+    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos: ChessPiece): boolean;
 }

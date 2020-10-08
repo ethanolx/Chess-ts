@@ -1,4 +1,4 @@
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { PieceType } from './pieceType';
 import { ChessPiece } from './chessPiece';
 
@@ -15,7 +15,7 @@ export class Knight implements ChessPiece {
         public owner: Colour
     ) { }
 
-    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean {
+    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos: ChessPiece): boolean {
         // horizontal move first
         return (Math.abs(newPosition[0] - oldPosition[0]) === 1 && Math.abs(newPosition[1] - oldPosition[1]) === 2)
             // vertical move first

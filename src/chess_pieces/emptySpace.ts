@@ -1,4 +1,4 @@
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { PieceType } from './pieceType';
 import { ChessPiece } from './chessPiece';
 
@@ -12,7 +12,7 @@ export class EmptySpace implements ChessPiece {
     pieceType: PieceType = PieceType.Null;
     possMovements: [number, number][] = [];
 
-    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean {
+    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos: ChessPiece): boolean {
         return false;
     }
 }

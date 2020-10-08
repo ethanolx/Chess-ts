@@ -1,4 +1,4 @@
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { PieceType } from './pieceType';
 import { ChessPiece } from './chessPiece';
 
@@ -15,7 +15,7 @@ export class Bishop implements ChessPiece {
         public owner: Colour
     ) {}
 
-    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean {
+    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos: ChessPiece): boolean {
         return (Math.abs(newPosition[0] - oldPosition[0]) === Math.abs(newPosition[1] - oldPosition[1]));
     }
 }

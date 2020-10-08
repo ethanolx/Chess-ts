@@ -1,6 +1,6 @@
 import { DefaultChessBoard } from '../data/board_setups/default_board';
 import { ChessPiece } from './../chess_pieces/chessPiece';
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { AlphabetToNumber } from './../misc/alphabetMap';
 import { PlayerType } from '../players/playerType';
 import { Pawn } from './../chess_pieces/pawn';
@@ -142,14 +142,8 @@ export class ChessGame {
             }
         }
         while (!this.validCoordinates(loc));
-        let coords = this.convertCoordinates(loc);
-        return { break: false, coords: coords };
-    }
-
-    convertCoordinates(coordStr: string): [number, number] {
-        let row_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[0] - (AlphabetToNumber.get(coordStr.toUpperCase().charAt(0)) || 0) - 1 : AlphabetToNumber.get(coordStr.toUpperCase().charAt(0)) || 0;
-        let col_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[1] - parseInt(coordStr.charAt(1)) : parseInt(coordStr.charAt(1)) - 1;
-        return [row_coord, col_coord];
+        let coords = this.activeBoard.convertCoordinates({str: loc});
+        return { break: false, coords: coords.tuple };
     }
 
     validCoordinates(coords: string): boolean {

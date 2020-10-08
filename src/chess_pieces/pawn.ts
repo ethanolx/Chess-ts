@@ -1,4 +1,4 @@
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { PieceType } from './pieceType';
 import { EmptySpace } from './emptySpace';
 import { ChessPiece } from './chessPiece';

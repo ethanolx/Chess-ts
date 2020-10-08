@@ -1,14 +1,21 @@
+import { Queen } from './../chess_pieces/queen';
+import { Rook } from './../chess_pieces/rook';
+import { Bishop } from './../chess_pieces/bishop';
+import { King } from './../chess_pieces/king';
+import { Pawn } from './../chess_pieces/pawn';
 import 'colors';
 import 'colorts/lib/string';
-import { Colour } from '../misc/colour';
-import { NumberToAlphabet } from '../misc/alphabetMap';
+import { Colour } from '../misc/colours/colour';
+import { AlphabetToNumber, NumberToAlphabet } from '../misc/alphabetMap';
 import { PieceType } from '../chess_pieces/pieceType';
 import { EmptySpace } from '../chess_pieces/emptySpace';
 import { ChessPiece } from '../chess_pieces/chessPiece';
 import { Utilities } from '../misc/utilities';
 import { Cell } from './cell';
 import { CellState } from './cellState';
-import { Colours } from '../misc/colours';
+import { Colours } from '../misc/colours/colours';
+import * as input from 'readline-sync';
+import { Knight } from '../chess_pieces/knight';
 
 export class ChessBoard {
 
@@ -20,9 +27,10 @@ export class ChessBoard {
 
     constructor(
         board: ChessPiece[][],
+        public cellDimensions: { height: number, width: number } = {height: 3, width: 6},
         public piecesAllowed: PieceType[] = [...Object.values(PieceType)],
         public fontColour: Colour = Colour.Magenta,
-        public bgColour: Colour = Colour.Grey,
+        public bgColour: Colour = Colour.Green,
         public highlight: Colour = Colour.Green
     ) {
         if (this.checkBoard(board)) {
@@ -30,6 +38,7 @@ export class ChessBoard {
         }
         else {
             this.board = [];
+            throw new Error("INVALID BOARD CONFIGURATIONS!");
         }
         this.dimensions = [this.board.length, this.board[0].length];    // rows, columns
     }
@@ -39,7 +48,7 @@ export class ChessBoard {
         let boardCells = Utilities.declare2DArr(board.length, board[0].length);
         for (let row = 0; row < board.length; row++) {
             for (let col = 0; col < board[0].length; col++) {
-                boardCells[row][col] = new Cell(board[row][col]);
+                boardCells[row][col] = new Cell(board[row][col], this.cellDimensions);
             }
         }
         return boardCells;
@@ -101,7 +110,7 @@ export class ChessBoard {
     }
 
     getColourStopper(colHeader: boolean = false): string {
-        return colHeader ? Utilities.repeatString('|', this.headers.colHeight, "vertical") : Utilities.repeatString('|', Cell.dimensions.height, "vertical");
+        return colHeader ? Utilities.repeatString('|', this.headers.colHeight, "vertical") : Utilities.repeatString('|', this.board[0][0].dimensions.height, "vertical");
     }
 
     getCaptured(): string {
@@ -122,8 +131,8 @@ export class ChessBoard {
 
         // row header (alphabetical)
         if (marker.row !== undefined) {
-            for (let i = 0; i < Cell.dimensions.height; i++) {
-                if (i !== Math.floor((Cell.dimensions.height - 1) / 2)) {
+            for (let i = 0; i < this.cellDimensions.height; i++) {
+                if (i !== Math.floor((this.cellDimensions.height - 1) / 2)) {
                     header += this.colour(Utilities.getWhiteSpace(this.headers.rowWidth));
                 }
                 else {
@@ -131,20 +140,20 @@ export class ChessBoard {
                     rowHeader = Utilities.replaceCharInStr(rowHeader, (NumberToAlphabet.get(rowNum) || ''), 0);
                     header += this.colour(rowHeader);
                 }
-                header += (i !== Cell.dimensions.height - 1) ? '\n' : '';
+                header += (i !== this.cellDimensions.height - 1) ? '\n' : '';
             }
         }
         // col header (numerical)
         else {
             header += this.colour(Utilities.getWhiteSpace(this.headers.rowWidth));
             for (let i = 0; i < this.dimensions[1]; i++) {
-                let colHeader = Utilities.getWhiteSpace(Cell.dimensions.width);
-                colHeader = Utilities.replaceCharInStr(colHeader, (`${(!this.reversed) ? i + 1 : this.dimensions[1] - i}`), Math.floor((Cell.dimensions.width - 1) / 2));
+                let colHeader = Utilities.getWhiteSpace(this.cellDimensions.width);
+                colHeader = Utilities.replaceCharInStr(colHeader, (`${(!this.reversed) ? i + 1 : this.dimensions[1] - i}`), Math.floor((this.cellDimensions.width - 1) / 2));
                 header += this.colour(colHeader);
             }
             for (let i = 1; i < this.headers.colHeight; i++) {
                 header += '\n';
-                header += this.colour(Utilities.getWhiteSpace(this.headers.rowWidth + Cell.dimensions.width * this.dimensions[1]));
+                header += this.colour(Utilities.getWhiteSpace(this.headers.rowWidth + this.cellDimensions.width * this.dimensions[1]));
             }
             header += '\n';
         }
@@ -153,13 +162,18 @@ export class ChessBoard {
 
     //$ Movement Validation
     move(oldPos: [number, number], newPos: [number, number]): void {
-        if (this.checkMovement(oldPos, newPos)[0]) {
+        // king is castling
+        if (this.checkMovement(oldPos, newPos)[0] && !this.board[oldPos[0]][oldPos[1]].piece.checkMovement(oldPos, newPos, this.board[newPos[0]][newPos[1]].piece)) {
+            this.castle(oldPos, newPos);
+        }
+        else if (this.checkMovement(oldPos, newPos)[0]) {
             if (!(this.board[newPos[0]][newPos[1]].piece instanceof EmptySpace)) {
                 this.capturedPieces.push(this.board[newPos[0]][newPos[1]].piece);
             }
             this.board[newPos[0]][newPos[1]].piece = this.board[oldPos[0]][oldPos[1]].piece;
             this.board[newPos[0]][newPos[1]].piece.hasMoved = true;
             this.board[oldPos[0]][oldPos[1]].piece = new EmptySpace();
+            this.promotePawn(newPos);
         }
         else {
             console.log("Error: " + this.checkMovement(oldPos, newPos)[1]);
@@ -191,6 +205,22 @@ export class ChessBoard {
             // valid move
             else {
                 return [true, ""];
+            }
+        }
+        // check if king is castling
+        else if (oldPiece instanceof King) {
+            let feedback = "cannot castle; ";
+            let castling = oldPiece.checkCastling(this.convertCoordinates({ tuple: newPos }).str, newPiece);
+            if (castling[0]) {
+                if (this.pieceNotBlocked(oldPos, newPos)) {
+                    return [castling[0], feedback + castling[1]];
+                }
+                else {
+                    return [false, feedback + "blocked"];
+                }
+            }
+            else {
+                return [castling[0], feedback + castling[1]];
             }
         }
         else {
@@ -258,5 +288,63 @@ export class ChessBoard {
                 cell.state = CellState.Normal;
             }
         }
+    }
+
+    //$ Custom Rules
+    promotePawn(coords: [number, number]): void {
+        if (this.checkPromotionCriteria(coords)) {
+            this.board[coords[0]][coords[1]].piece = this.offerPromotion(this.board[coords[0]][coords[1]].piece.owner);
+        }
+    }
+
+    checkPromotionCriteria(coords: [number, number]): boolean {
+        return this.board[coords[0]][coords[1]].piece.pieceType === PieceType.Pawn && coords[0] === 0;
+    }
+
+    offerPromotion(owner: Colour): ChessPiece {
+        let offer = "Pieces To Promote To: ";
+        const Promotions = [new Bishop(owner), new Rook(owner), new Knight(owner), new Queen(owner)];
+        Promotions.forEach((piece, index) => offer += `(${index + 1})${piece.pieceType} , `);
+        offer = offer.replace(/( , $)/, '');
+        console.log(offer);
+        let selectedPromotion;
+        do {
+            selectedPromotion = input.questionInt(">> ");
+        }
+        while (selectedPromotion < 1 || selectedPromotion > 4);
+        return Promotions[selectedPromotion - 1];
+    }
+
+    castle(oldPos: [number, number], newPos: [number, number]): void {
+        // castle right
+        if (newPos[1] > oldPos[1]) {
+            this.board[oldPos[0]][oldPos[1] + 2].piece = this.board[oldPos[0]][oldPos[1]].piece;
+            this.board[oldPos[0]][oldPos[1] + 2].piece.hasMoved = true;
+            this.board[oldPos[0]][oldPos[1] + 1].piece = this.board[newPos[0]][newPos[1]].piece;
+            this.board[oldPos[0]][oldPos[1] + 1].piece.hasMoved = true;
+        }
+        // castle left
+        else {
+            this.board[oldPos[0]][oldPos[1] - 2].piece = this.board[oldPos[0]][oldPos[1]].piece;
+            this.board[oldPos[0]][oldPos[1] - 2].piece.hasMoved = true;
+            this.board[oldPos[0]][oldPos[1] - 1].piece = this.board[newPos[0]][newPos[1]].piece;
+            this.board[oldPos[0]][oldPos[1] - 1].piece.hasMoved = true;
+        }
+        this.board[oldPos[0]][oldPos[1]].piece = new EmptySpace();
+        this.board[newPos[0]][newPos[1]].piece = new EmptySpace();
+    }
+
+    convertCoordinates(coords: { str?: string, tuple?: [number, number] }): { str: string, tuple: [number, number] } {
+        if (coords.str !== undefined && coords.tuple === undefined) {
+            let row_coord = (this.reversed) ? this.dimensions[0] - (AlphabetToNumber.get(coords.str.toUpperCase().charAt(0)) || 0) - 1 : AlphabetToNumber.get(coords.str.toUpperCase().charAt(0)) || 0;
+            let col_coord = (this.reversed) ? this.dimensions[1] - parseInt(coords.str.charAt(1)) : parseInt(coords.str.charAt(1)) - 1;
+            return { str: "", tuple: [row_coord, col_coord] };
+        }
+        if (coords.tuple !== undefined && coords.str === undefined) {
+            let alphabetHeader = (this.reversed) ? NumberToAlphabet.get(this.dimensions[0] - coords.tuple[0]) || "" : NumberToAlphabet.get(coords.tuple[0]) || "";
+            let numberHeader = (this.reversed) ? this.dimensions[1] - coords.tuple[1] - 1 : coords.tuple[1] + 1;
+            return { str: alphabetHeader + numberHeader.toString(), tuple: [-1, -1] };
+        }
+        return { str: "", tuple: [-1, -1] };
     }
 }
