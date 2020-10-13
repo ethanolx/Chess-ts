@@ -2,7 +2,6 @@ import { Queen } from './../chess_pieces/queen';
 import { Rook } from './../chess_pieces/rook';
 import { Bishop } from './../chess_pieces/bishop';
 import { King } from './../chess_pieces/king';
-import { Pawn } from './../chess_pieces/pawn';
 import 'colors';
 import 'colorts/lib/string';
 import { Colour } from '../misc/colours/colour';
@@ -10,7 +9,7 @@ import { AlphabetToNumber, NumberToAlphabet } from '../misc/alphabetMap';
 import { PieceType } from '../chess_pieces/pieceType';
 import { EmptySpace } from '../chess_pieces/emptySpace';
 import { ChessPiece } from '../chess_pieces/chessPiece';
-import { Utilities } from '../misc/utilities';
+import * as Utilities from '../misc/utilities';
 import { Cell } from './cell';
 import { CellState } from './cellState';
 import { Colours } from '../misc/colours/colours';
@@ -27,11 +26,11 @@ export class ChessBoard {
 
     constructor(
         board: ChessPiece[][],
-        public cellDimensions: { height: number, width: number } = {height: 3, width: 6},
-        public piecesAllowed: PieceType[] = [...Object.values(PieceType)],
-        public fontColour: Colour = Colour.Magenta,
-        public bgColour: Colour = Colour.Green,
-        public highlight: Colour = Colour.Green
+        protected cellDimensions: { height: number, width: number } = { height: 3, width: 6 },
+        protected customWinConditions: Array<(from: [number, number], to: [number, number]) => boolean> = [],
+        protected piecesAllowed: PieceType[] = [...Object.values(PieceType)],
+        protected fontColour: Colour = Colour.White,
+        protected bgColour: Colour = Colour.None,
     ) {
         if (this.checkBoard(board)) {
             this.board = this.convertBoard(board);
@@ -87,11 +86,59 @@ export class ChessBoard {
     }
 
     //$ Display
-    getProjection(coords: [number, number]): void {
-        this.board.forEach((row, rowNum) => row.forEach((cell, colNum) => {
-            cell.state = this.checkMovement(coords, [rowNum, colNum])[0] ? CellState.Projected : CellState.Normal;
-        }));
+    // ! Deprecated !
+    // getProjection(coords: [number, number]): void {
+    //     this.board.forEach((row, rowNum) => row.forEach((cell, colNum) => {
+    //         cell.state = this.checkMovement(coords, [rowNum, colNum])[0] ? CellState.Projected : CellState.Normal;
+    //     }));
+    //     this.board[coords[0]][coords[1]].state = CellState.Selected;
+    // }
+
+    highlightPiecesThatCanMove(currentTurn: Colour): void {
+        for (let row = 0; row < this.board.length; row++) {
+            for (let col = 0; col < this.board[0].length; col++) {
+                let cell = this.board[row][col];
+                cell.piece.possMovements = [];
+                if (this.scan({ from: [row, col] }, (from: [number, number], to: [number, number]) => {
+                    let canMoveThere = this.checkMovement(from, to)[0] && cell.piece.owner === currentTurn;
+                    if (canMoveThere) {
+                        cell.piece.possMovements.unshift(to);
+                    }
+                    return canMoveThere;
+                })) {
+                    cell.state = CellState.Available;
+                }
+            }
+        }
+    }
+
+    highlightPositionsWherePieceCanMoveTo(coords: [number, number]): void {
+        this.scan({ from: coords }, (from: [number, number], to: [number, number]) => this.checkMovement(from, to)[0], CellState.Projected);
         this.board[coords[0]][coords[1]].state = CellState.Selected;
+    }
+
+    getObjectiveCoords(turn: Colour): [number, number][] {
+        let coordArr: [number, number][] = [];
+        for (let row = 0; row < this.board.length; row++) {
+            for (let col = 0; col < this.board[0].length; col++) {
+                const piece = this.board[row][col].piece;
+                if (piece.owner === turn && piece.objective) {
+                    coordArr.push([row, col]);
+                }
+            }
+        }
+        return coordArr;
+    }
+
+    highlightObjectivesInCheckAndPiecesChecking(turn: Colour): void {
+        this.reverse();
+        let objectiveCoords = this.getObjectiveCoords(turn);
+        for (let coords of objectiveCoords) {
+            if (this.scan({ to: coords }, (from: [number, number], to: [number, number]) => this.checkMovement(from, to)[0], CellState.Checking)) {
+                this.board[coords[0]][coords[1]].state = CellState.Checked;
+            }
+        }
+        this.reverse();
     }
 
     display(): void {
@@ -181,16 +228,16 @@ export class ChessBoard {
     }
 
     checkMovement(oldPos: [number, number], newPos: [number, number]): [boolean, string] {
-        let oldPiece = this.board[oldPos[0]][oldPos[1]].piece;
-        let newPiece = this.board[newPos[0]][newPos[1]].piece;
-        // no move
-        if (oldPos[0] === newPos[0] && oldPos[1] === newPos[1]) {
-            return [false, "stationary"];
-        }
         // check whether move is out of bounds
-        else if (this.isOutOfBounds(newPos)) {
+        if (this.isOutOfBounds(newPos)) {
             return [false, "out of bounds"];
         }
+        // no move
+        else if (oldPos[0] === newPos[0] && oldPos[1] === newPos[1]) {
+            return [false, "stationary"];
+        }
+        let oldPiece = this.board[oldPos[0]][oldPos[1]].piece;
+        let newPiece = this.board[newPos[0]][newPos[1]].piece;
         // check whether piece is able to make the move
         let validMove = oldPiece.checkMovement(oldPos, newPos, newPiece);
         if (validMove) {
@@ -288,6 +335,37 @@ export class ChessBoard {
                 cell.state = CellState.Normal;
             }
         }
+    }
+
+    scan(target: { from?: [number, number], to?: [number, number] }, fn: (from: [number, number], to: [number, number]) => boolean, cellStateTarget?: CellState): boolean {
+        let instancesDetected = 0;
+        if (target.from !== undefined) {
+            // origin is target
+            for (let row = 0; row < this.board.length; row++) {
+                for (let col = 0; col < this.board[0].length; col++) {
+                    if (fn(target.from, [row, col])) {
+                        if (cellStateTarget !== undefined) {
+                            this.board[row][col].state = cellStateTarget;
+                        }
+                        instancesDetected++;
+                    }
+                }
+            }
+        }
+        else if (target.to !== undefined) {
+            // destination is target
+            for (let row = 0; row < this.board.length; row++) {
+                for (let col = 0; col < this.board[0].length; col++) {
+                    if (fn([row, col], target.to)) {
+                        if (cellStateTarget !== undefined) {
+                            this.board[row][col].state = cellStateTarget;
+                        }
+                        instancesDetected++;
+                    }
+                }
+            }
+        }
+        return instancesDetected > 0;
     }
 
     //$ Custom Rules

@@ -47,7 +47,11 @@ export class Cell {
                 return Colour.Green;
             case CellState.Available:
                 return Colour.Magenta;
-            default:
+            case CellState.Checked:
+                return Colour.Red;
+            case CellState.Checking:
+                return Colour.Yellow;
+            case CellState.Normal:
                 return Colour.None;
         }
     }

@@ -10,8 +10,8 @@ import { ChessBoard } from '../../chess_general/chessBoard';
 
 export const TestChessBoard = new ChessBoard(
     [
-        [new Pawn(Colour.Cyan), new King(Colour.Cyan), new EmptySpace()],
-        [new EmptySpace(), new EmptySpace(), new EmptySpace()],
-        [new Pawn(Colour.White), new King(Colour.White), new Pawn(Colour.White)]
+        [new Pawn(Colour.Cyan), new King(Colour.Cyan), new EmptySpace(), new EmptySpace()],
+        [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
+        [new Rook(Colour.White), new EmptySpace(), new EmptySpace(), new King(Colour.White)]
     ]
 );
