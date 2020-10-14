@@ -1,0 +1,7 @@
+node_modules
+
+out
+
+src/data/saved_states
+
+.vscode

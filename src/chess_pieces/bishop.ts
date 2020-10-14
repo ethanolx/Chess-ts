@@ -1,26 +1,21 @@
-import { Colour } from './../misc/colour';
-import { PieceType } from '../chess_general/pieceType';
+import { Colour } from '../misc/colours/colour';
+import { PieceType } from './pieceType';
 import { ChessPiece } from './chessPiece';
 
 export class Bishop implements ChessPiece {
 
-    unique: boolean;
-    objective: boolean;
-    hasMoved: boolean;
-    canBeBlocked: boolean;
-    pieceType: PieceType;
+    unique: boolean = false;
+    objective: boolean = false;
+    hasMoved: boolean = false;
+    canBeBlocked: boolean = true;
+    pieceType: PieceType = PieceType.Bishop;
+    possMovements: [number, number][] = [];
 
     constructor(
         public owner: Colour
-    ) {
-        this.unique = false;
-        this.objective = false;
-        this.hasMoved = false;
-        this.canBeBlocked = true;
-        this.pieceType = PieceType.Bishop;
-    }
+    ) {}
 
-    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean {
+    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos: ChessPiece): boolean {
         return (Math.abs(newPosition[0] - oldPosition[0]) === Math.abs(newPosition[1] - oldPosition[1]));
     }
 }

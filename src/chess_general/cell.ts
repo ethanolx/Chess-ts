@@ -1,33 +1,31 @@
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { CellState } from './cellState';
 import { ChessPiece } from './../chess_pieces/chessPiece';
 import "colors";
-import { Colours } from '../misc/colours';
+import { Colours } from '../misc/colours/colours';
 
 export class Cell {
 
-    static dimensions: { height: number, width: number } = { height: 3, width: 6 };
-    state: CellState;
+    state: CellState = CellState.Normal;
 
     constructor(
-        public piece: ChessPiece
-    ) {
-        this.state = CellState.Normal
-    }
+        public piece: ChessPiece,
+        public dimensions: { height: number, width: number }
+    ) { }
 
-    display(): string {
+    getDisplay(): string {
         let cellDisplayArr = [];
-        for (let row = 0; row < Cell.dimensions.height; row++) {
+        for (let row = 0; row < this.dimensions.height; row++) {
             //  top and bottom margin around piece
-            if (row !== Math.floor((Cell.dimensions.height - 1) / 2)) {
-                for (let column = 0; column < Cell.dimensions.width; column++) {
+            if (row !== Math.floor((this.dimensions.height - 1) / 2)) {
+                for (let column = 0; column < this.dimensions.width; column++) {
                     cellDisplayArr.push(' ');
                 }
             }
             else {
-                for (let column = 0; column < Cell.dimensions.width; column++) {
+                for (let column = 0; column < this.dimensions.width; column++) {
                     // left and right margin around piece
-                    if (column !== Math.floor((Cell.dimensions.width - 1) / 2)) {
+                    if (column !== Math.floor((this.dimensions.width - 1) / 2)) {
                         cellDisplayArr.push(' ');
                     }
                     else {
@@ -35,7 +33,7 @@ export class Cell {
                     }
                 }
             }
-            cellDisplayArr.push((row !== Cell.dimensions.height - 1) ? '\n' : '');
+            cellDisplayArr.push((row !== this.dimensions.height - 1) ? '\n' : '');
         }
         cellDisplayArr = cellDisplayArr.map(disp => (disp === '\n') ? disp : this.colourCell(disp));
         return cellDisplayArr.join(this.colourCell(''));
@@ -47,7 +45,13 @@ export class Cell {
                 return Colour.Blue;
             case CellState.Projected:
                 return Colour.Green;
-            default:
+            case CellState.Available:
+                return Colour.Magenta;
+            case CellState.Checked:
+                return Colour.Red;
+            case CellState.Checking:
+                return Colour.Yellow;
+            case CellState.Normal:
                 return Colour.None;
         }
     }

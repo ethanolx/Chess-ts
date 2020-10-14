@@ -1,110 +1,159 @@
+import { DefaultChessBoard } from '../data/board_setups/default_board';
 import { ChessPiece } from './../chess_pieces/chessPiece';
-import { Colour } from './../misc/colour';
+import { Colour } from '../misc/colours/colour';
 import { AlphabetToNumber } from './../misc/alphabetMap';
-import { PlayerType } from './playerType';
-import { Pawn } from './../chess_pieces/pawn';
-import { EmptySpace } from './../chess_pieces/emptySpace';
-import { King } from './../chess_pieces/king';
-import { Queen } from './../chess_pieces/queen';
-import { Bishop } from './../chess_pieces/bishop';
-import { Knight } from './../chess_pieces/knight';
-import { Rook } from './../chess_pieces/rook';
+import { PlayerType } from '../players/playerType';
 import { ChessBoard } from './chessBoard';
 import * as input from 'readline-sync';
+import { CellState } from './cellState';
 
 export class ChessGame {
 
-    defaultBoard: ChessBoard = new ChessBoard(
-        [
-            [new Rook(Colour.Cyan), new Knight(Colour.Cyan), new Bishop(Colour.Cyan), new Queen(Colour.Cyan), new King(Colour.Cyan), new Bishop(Colour.Cyan), new Knight(Colour.Cyan), new Rook(Colour.Cyan)],
-            [new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan), new Pawn(Colour.Cyan)],
-            [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
-            [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
-            [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
-            [new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace(), new EmptySpace()],
-            [new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White), new Pawn(Colour.White)],
-            [new Rook(Colour.White), new Knight(Colour.White), new Bishop(Colour.White), new Queen(Colour.White), new King(Colour.White), new Bishop(Colour.White), new Knight(Colour.White), new Rook(Colour.White)]
-        ]
-    );
+    defaultBoard: ChessBoard = DefaultChessBoard;
     activeBoard: ChessBoard;
     players: [Colour, PlayerType][];
     terminationStr: string = '%';
     objectives: ChessPiece[] = [];
+    currentTurn: [Colour, PlayerType];
 
-    constructor(players?: [Colour, PlayerType][], board?: ChessBoard) {
-        this.players = players || [[Colour.White, PlayerType.Human], [Colour.Cyan, PlayerType.Human]];
+    constructor(board?: ChessBoard, players?: [Colour, PlayerType][]) {
         this.activeBoard = board || this.defaultBoard;
+        this.players = players || [[Colour.White, PlayerType.Human], [Colour.Cyan, PlayerType.Human]];
         this.activeBoard.board.forEach(row => row.forEach(cell => {
             if (cell.piece.objective) {
                 this.objectives.push(cell.piece);
             }
         }));
+        this.currentTurn = this.players[0];
     }
 
     run(): void {
+        let cont: boolean;
         do {
-            this.nextRound();
+            cont = this.takeRound();
         }
-        while (true);
+        while (cont);
+        console.log(this.isGameOver() ? this.getGOMsg() : "Session terminated");
     }
 
-    nextTurn(turn: number): boolean {
+    takeTurn(): boolean {
+        let cont = true;
         do {
-            let from = this.getPieceToMove(turn);
-            if (from === [-1, -1]) {
-                break;
+            //! highlight pieces that can move and pieces that are checked
+            this.activeBoard.highlightPiecesThatCanMove(this.currentTurn[0]);
+            this.activeBoard.highlightObjectivesInCheckAndPiecesChecking(this.currentTurn[0]);
+
+            let from = this.getPieceToMove();
+            if (from.break) {
                 return false;
             }
+
+            //! to inconsistent with from
             let to = this.selectCoords("\'to\'");
-            this.activeBoard.move(from, to);
+            if (to.break) {
+                return false;
+            }
+
+            cont = !this.activeBoard.checkMovement(from.coords, to.coords)[0];
+
+            //! called many times!! - endless loop
+            console.clear();
+            this.activeBoard.move(from.coords, to.coords);
+            this.removeObjectivesCaptured();
             this.activeBoard.reset();
+            this.activeBoard.highlightObjectivesInCheckAndPiecesChecking(this.currentTurn[0]);
             this.activeBoard.display();
 
             input.question();
         }
-        while (true);
+        while (cont);
         return true;
     }
 
-    nextRound(): void {
+    takeRound(): boolean {
         for (let turn = 0; turn < this.players.length; turn++) {
-            this.nextTurn(turn);
+            this.currentTurn = this.players[turn];
+            if (!this.takeTurn() || this.isGameOver()) {
+                return false;
+            }
             this.activeBoard.reverse();
         }
+        return true;
+    }
+
+    removeObjectivesCaptured(): void {
+        let objectivesCaptured: Array<ChessPiece> = this.activeBoard.capturedPieces.filter(piece => piece.objective);
+        this.objectives = this.objectives.filter(obj => !objectivesCaptured.includes(obj));
     }
 
     isGameOver(): boolean {
-        return this.objectives.length === 1;
+        let playersLeft: Colour[] = [];
+        this.objectives.map(obj => {
+            if (!playersLeft.includes(obj.owner)) {
+                playersLeft.push(obj.owner);
+            }
+        });
+        return playersLeft.length === 1;
     }
 
-    getPieceToMove(turn: number): [number, number] {
-        let from: [number, number] = [-1, -1];
+    getGOMsg(): string {
+        return `${this.objectives[0].owner} wins!`;
+    }
+
+    getPieceToMove(): { break: boolean, coords: [number, number] } {
+        let from: { break: boolean, coords: [number, number] } = { break: true, coords: [0, 0] };
+        let coords: [number, number];
         do {
             console.clear();
             this.activeBoard.display();
             from = this.selectCoords("\'from\'");
+            coords = from.coords;
+            if (from.break) {
+                return { break: true, coords: [0, 0] };
+            }
         }
-        while((!this.activeBoard.isOutOfBounds(from) || this.activeBoard.board[from[0]][from[1]].piece.owner !== this.players[turn][0]) && from !== [-1, -1]);
+        while (this.activeBoard.isOutOfBounds(coords) || this.activeBoard.board[coords[0]][coords[1]].piece.owner !== this.currentTurn[0]);
         console.clear();
-        this.activeBoard.showProjection(from);
+        this.activeBoard.reset();
+        this.activeBoard.highlightPositionsWherePieceCanMoveTo(coords);
+        this.activeBoard.display();
         return from;
     }
 
-    selectCoords(direction: "\'from\'" | "\'to\'"): [number, number] {
-        let piece: string;
+    //! deprecated
+    // getMoveablePieces(): void {
+    //     for (let row1 = 0; row1 < this.activeBoard.board.length; row1++) {
+    //         for (let col1 = 0; col1 < this.activeBoard.board[0].length; col1++) {
+    //             let cell = this.activeBoard.board[row1][col1];
+    //             cell.piece.possMovements = [];
+    //             for (let row = 0; row < this.activeBoard.board.length; row++) {
+    //                 for (let col = 0; col < this.activeBoard.board[0].length; col++) {
+    //                     if (this.activeBoard.checkMovement([row1, col1], [row, col])[0] && this.activeBoard.board[row1][col1].piece.owner === this.currentTurn[0]) {
+    //                         cell.piece.possMovements.unshift([row, col]);
+    //                     }
+    //                 }
+    //             }
+    //             if (cell.piece.possMovements.length > 0 && cell.piece.owner === this.currentTurn[0]) {
+    //                 cell.state = CellState.Available;
+    //             }
+    //         }
+    //     }
+    // }
+
+    selectCoords(direction: "\'from\'" | "\'to\'"): { break: boolean, coords: [number, number] } {
+        let loc: string;
         do {
-            piece = input.question(`Enter ${direction} Coordinates (e.g. A1, C4) [\'${this.terminationStr}\' to quit]: `).toUpperCase();
-            if (piece.trim() === this.terminationStr) {
-                return [-1, -1];
+            loc = input.question(`Enter ${direction} Coordinates (e.g. A1, C4) [\'${this.terminationStr}\' to quit]: `).toUpperCase().trim();
+            if (loc === this.terminationStr) {
+                return { break: true, coords: [0, 0] };
             }
         }
-        while (!this.validCoordinates(piece));
-        let row_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[0] - (AlphabetToNumber.get(piece.charAt(0)) || 0) - 1 : AlphabetToNumber.get(piece.charAt(0)) || 0;
-        let col_coord = (this.activeBoard.reversed) ? this.activeBoard.dimensions[1] - parseInt(piece.charAt(1)) : parseInt(piece.charAt(1)) - 1;
-        return [row_coord, col_coord];
+        while (!this.validCoordinates(loc));
+        let coords = this.activeBoard.convertCoordinates({ str: loc });
+        return { break: false, coords: coords.tuple };
     }
 
     validCoordinates(coords: string): boolean {
-        return (coords.trim().length === 2) && (AlphabetToNumber.has(coords.charAt(0)));
+        return (coords.trim().length === 2) && (AlphabetToNumber.has(coords.charAt(0))) && [...Array(this.activeBoard.board[0].length + 1).keys()].includes(parseInt(coords.charAt(1)));
     }
 }

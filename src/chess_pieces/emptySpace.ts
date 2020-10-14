@@ -1,26 +1,18 @@
-import { Colour } from './../misc/colour';
-import { PieceType } from '../chess_general/pieceType';
+import { Colour } from '../misc/colours/colour';
+import { PieceType } from './pieceType';
 import { ChessPiece } from './chessPiece';
 
 export class EmptySpace implements ChessPiece {
 
-    owner: Colour;
-    unique: boolean;
-    hasMoved: boolean;
-    objective: boolean;
-    canBeBlocked: boolean;
-    pieceType: PieceType
+    owner: Colour = Colour.None;
+    unique: boolean = false;
+    hasMoved: boolean = false;
+    objective: boolean = false;
+    canBeBlocked: boolean = false;
+    pieceType: PieceType = PieceType.Null;
+    possMovements: [number, number][] = [];
 
-    constructor() {
-        this.owner = Colour.None;
-        this.unique = false;
-        this.hasMoved = false;
-        this.objective = false;
-        this.canBeBlocked = false;
-        this.pieceType = PieceType.Null;
-    }
-
-    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos?: ChessPiece): boolean {
+    checkMovement(oldPosition: [number, number], newPosition: [number, number], pieceAtNewPos: ChessPiece): boolean {
         return false;
     }
 }

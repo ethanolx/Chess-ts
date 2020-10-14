@@ -1,0 +1,26 @@
+{
+  "name": "chess",
+  "version": "1.0.0",
+  "description": "chess engine",
+  "main": "src/main.ts",
+  "dependencies": {
+    "colorts": "^0.1.63",
+    "fs": "^0.0.1-security",
+    "colors": "^1.4.0",
+    "readline-sync": "^1.4.10"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "nodemon --exec 'ts-node' ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ethanolx/Chess.git"
+  },
+  "author": "Ethan Tan Wee En",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ethanolx/Chess/issues"
+  },
+  "homepage": "https://github.com/ethanolx/Chess#readme"
+}

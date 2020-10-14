@@ -1,4 +1,6 @@
 import { Colour } from './colour';
+import "colors";
+import "colorts";
 
 export abstract class Colours {
 
@@ -16,6 +18,12 @@ export abstract class Colours {
                 return str.grey;
             case Colour.Magenta:
                 return str.magenta;
+            case Colour.Rainbow:
+                return str.rainbow;
+            case Colour.Red:
+                return str.red;
+            case Colour.Yellow:
+                return str.yellow;
             default:
                 return str;
         }
@@ -35,6 +43,12 @@ export abstract class Colours {
                 return str.bgGrey;
             case Colour.Magenta:
                 return str.bgMagenta;
+            case Colour.Red:
+                return str.bgRed;
+            case Colour.White:
+                return str.bgWhite;
+            case Colour.Yellow:
+                return str.bgYellow;
             default:
                 return str;
         }
